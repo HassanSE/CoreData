@@ -45,7 +45,7 @@ class ViewController: UIViewController {
   
   var coreDataStack: CoreDataStack!
   var fetchRequest: NSFetchRequest<Venue>!
-  var venues: [Venue]!
+  var venues: [Venue] = []
   var asyncFetchRequest: NSAsynchronousFetchRequest<Venue>!
   
   // MARK: - IBOutlets
@@ -54,6 +54,17 @@ class ViewController: UIViewController {
   // MARK: - View Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
+    
+    let batchUpdate = NSBatchUpdateRequest(entityName: "Venue")
+    batchUpdate.propertiesToUpdate = [#keyPath(Venue.favorite): true]
+    batchUpdate.affectedStores = coreDataStack.managedContext.persistentStoreCoordinator?.persistentStores
+    batchUpdate.resultType = .updatedObjectsCountResultType
+    do {
+      let batchResult = try coreDataStack.managedContext.execute(batchUpdate) as! NSBatchUpdateResult
+      print("Records Updated: \(batchResult.result!)")
+    } catch let error as NSError {
+      print("Could not update: \(error), Description: \(error.userInfo)")
+    }
     
     fetchRequest = Venue.fetchRequest()
     asyncFetchRequest = NSAsynchronousFetchRequest(fetchRequest: fetchRequest) { [unowned self] result in
@@ -64,6 +75,7 @@ class ViewController: UIViewController {
     
     do {
       try coreDataStack.managedContext.execute(asyncFetchRequest)
+      // Returns immediately, cancel here if you want
     } catch let error as NSError {
       print("Could not execute: \(error), Description: \(error.userInfo)")
     }
