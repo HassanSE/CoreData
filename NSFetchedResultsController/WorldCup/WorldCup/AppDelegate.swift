@@ -66,7 +66,7 @@ extension AppDelegate {
   func importJSONSeedData() {
 
     let jsonURL = Bundle.main.url(forResource: "seed", withExtension: "json")!
-    let jsonData = NSData(contentsOf: jsonURL) as! Data
+    let jsonData = NSData(contentsOf: jsonURL)! as Data
 
     do {
       let jsonArray = try JSONSerialization.jsonObject(with: jsonData, options: [.allowFragments]) as! [AnyObject]
