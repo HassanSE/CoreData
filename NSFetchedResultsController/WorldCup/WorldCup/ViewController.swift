@@ -37,6 +37,7 @@ class ViewController: UIViewController {
   // MARK: - View Life Cycle
   override func viewDidLoad() {
     super.viewDidLoad()
+    tableView.allowsSelectionDuringEditing = false
     
     let fetchRequest: NSFetchRequest<Team> = Team.fetchRequest()
     let zoneSort = NSSortDescriptor(key: #keyPath(Team.qualifyingZone), ascending: true)
@@ -56,6 +57,41 @@ class ViewController: UIViewController {
     } catch let error as NSError {
       print("Fetching Error: \(error), \(error.userInfo)")
     }
+  }
+  
+  override func motionEnded(_ motion: UIEventSubtype, with event: UIEvent?) {
+    if motion == .motionShake {
+      addButton.isEnabled = true
+    }
+  }
+}
+
+// MARK: - IBActions
+extension ViewController {
+  @IBAction func addTeam(_ sender: AnyObject) {
+    let alert = UIAlertController(title: "Secret Team", message: "Add a new team", preferredStyle: .alert)
+    alert.addTextField { textField in
+      textField.placeholder = "Team Name"
+    }
+    
+    alert.addTextField { textField in
+      textField.placeholder = "Qualifying Zone"
+    }
+    
+    let saveAction = UIAlertAction(title: "Save", style: .default) { [unowned self] action in
+      guard let nameTextField = alert.textFields?.first,
+        let zoneTextField = alert.textFields?.last else {
+          return
+      }
+      let team = Team(context: self.coreDataStack.managedContext)
+      team.teamName = nameTextField.text
+      team.qualifyingZone = zoneTextField.text
+      team.imageName = "\(nameTextField.text?.lowercased() ?? "wenderland")-flag"
+      self.coreDataStack.saveContext()
+    }
+    alert.addAction(saveAction)
+    alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+    present(alert, animated: true)
   }
 }
 
@@ -104,6 +140,12 @@ extension ViewController: UITableViewDataSource {
     let sectionInfo = fetchedResultsController.sections?[section]
     return sectionInfo?.name
   }
+  
+  func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
+    let team = fetchedResultsController.object(at: indexPath)
+    coreDataStack.managedContext.delete(team)
+    coreDataStack.saveContext()
+  }
 }
 
 // MARK: - UITableViewDelegate
@@ -140,6 +182,19 @@ extension ViewController: NSFetchedResultsControllerDelegate {
   
   func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
     tableView.endUpdates()
+  }
+  
+  func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange sectionInfo: NSFetchedResultsSectionInfo, atSectionIndex sectionIndex: Int, for type: NSFetchedResultsChangeType) {
+    let indexSet = IndexSet(integer: sectionIndex)
+    
+    switch type {
+    case .insert:
+      tableView.insertSections(indexSet, with: .automatic)
+    case .delete:
+      tableView.deleteSections(indexSet, with: .automatic)
+    default:
+      break
+    }
   }
 }
 
